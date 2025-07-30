@@ -1,33 +1,108 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>ChatX - WhatsApp Style</title>
-  <link rel="stylesheet" href="css/styles.css">
-  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
-  <script src="https://www.gstatic.com/firebasejs/9.6.0/firebase-app-compat.js"></script>
-  <script src="https://www.gstatic.com/firebasejs/9.6.0/firebase-database-compat.js"></script>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ChatApp</title>
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
+    <link rel="stylesheet" href="style.css">
 </head>
 <body>
-  <div class="chat-app">
-    <!-- Header -->
-    <div class="chat-header">
-      <div class="chat-title">ChatX</div>
-      <button id="logoutBtn">Logout</button>
+    <!-- Auth Screen -->
+    <div id="auth-screen" class="screen">
+        <div class="auth-container">
+            <h1>ChatApp</h1>
+            <p>Connect with friends seamlessly</p>
+            
+            <div class="auth-form">
+                <input type="email" id="email" placeholder="Email">
+                <input type="password" id="password" placeholder="Password">
+                <button id="login-btn">Login</button>
+                <button id="signup-btn">Sign Up</button>
+                <button id="google-auth-btn" class="google-btn">
+                    <i class="fab fa-google"></i> Continue with Google
+                </button>
+            </div>
+        </div>
     </div>
 
-    <!-- Messages Area -->
-    <div class="chat-messages" id="chatMessages"></div>
+    <!-- Main Chat Screen -->
+    <div id="chat-screen" class="screen hidden">
+        <!-- Header -->
+        <header class="chat-header">
+            <div class="header-left">
+                <button id="back-btn" class="icon-btn"><i class="fas fa-arrow-left"></i></button>
+                <div class="user-info">
+                    <img id="current-user-avatar" src="https://via.placeholder.com/40" alt="User">
+                    <span id="current-username">User</span>
+                </div>
+            </div>
+            <div class="header-right">
+                <button id="voice-call-btn" class="icon-btn"><i class="fas fa-phone"></i></button>
+                <button id="video-call-btn" class="icon-btn"><i class="fas fa-video"></i></button>
+                <button id="logout-btn" class="icon-btn"><i class="fas fa-sign-out-alt"></i></button>
+            </div>
+        </header>
 
-    <!-- Input -->
-    <div class="chat-input">
-      <input type="text" id="messageInput" placeholder="Type a message..." autocomplete="off">
-      <button id="sendMessageBtn">Send</button>
+        <!-- Chat Container -->
+        <div class="chat-container">
+            <div id="messages-container" class="messages-container">
+                <!-- Messages will be loaded here -->
+            </div>
+        </div>
+
+        <!-- Message Input -->
+        <div class="message-input-container">
+            <button id="attach-btn" class="icon-btn"><i class="fas fa-paperclip"></i></button>
+            <input type="text" id="message-input" placeholder="Type a message...">
+            <button id="send-btn" class="icon-btn send-btn"><i class="fas fa-paper-plane"></i></button>
+        </div>
     </div>
-  </div>
 
-  <script src="firebase-config.js"></script>
-  <script src="app.js"></script>
+    <!-- Call Screen -->
+    <div id="call-screen" class="screen hidden">
+        <div class="call-container">
+            <div class="video-container">
+                <video id="remote-video" autoplay playsinline></video>
+                <video id="local-video" autoplay playsinline muted></video>
+            </div>
+            
+            <div class="call-controls">
+                <div class="caller-info">
+                    <img id="caller-avatar" src="https://via.placeholder.com/80" alt="Caller">
+                    <h3 id="caller-name">Calling...</h3>
+                    <p id="call-status">Connecting</p>
+                </div>
+                
+                <div class="call-buttons">
+                    <button id="mute-btn" class="call-btn"><i class="fas fa-microphone"></i></button>
+                    <button id="end-call-btn" class="call-btn end-call"><i class="fas fa-phone-slash"></i></button>
+                    <button id="video-off-btn" class="call-btn"><i class="fas fa-video"></i></button>
+                    <button id="switch-camera-btn" class="call-btn"><i class="fas fa-sync-alt"></i></button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Attachments Modal -->
+    <div id="attachments-modal" class="modal hidden">
+        <div class="modal-content">
+            <span class="close-modal">&times;</span>
+            <h3>Send Attachment</h3>
+            <div class="attachment-options">
+                <button id="send-image-btn"><i class="fas fa-image"></i> Photo</button>
+                <button id="send-video-btn"><i class="fas fa-video"></i> Video</button>
+                <button id="send-document-btn"><i class="fas fa-file"></i> Document</button>
+            </div>
+        </div>
+    </div>
+
+    <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-app.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-auth.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-firestore.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-storage.js"></script>
+    <script src="firebase-config.js"></script>
+    <script src="app.js"></script>
 </body>
 </html>
