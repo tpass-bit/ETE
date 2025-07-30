@@ -1,13 +1,12 @@
 // Firebase Configuration (separate file: firebase-config.js)
-const firebaseConfig = {
-  apiKey: "AIzaSyBPF1VE82Y3VkZe6IibjqKxBC-XHjM_Wco",
-  authDomain: "chat-2024-ff149.firebaseapp.com",
-  databaseURL: "https://chat-2024-ff149-default-rtdb.asia-southeast1.firebasedatabase.app",
-  projectId: "chat-2024-ff149",
-  storageBucket: "chat-2024-ff149.appspot.com",
-  messagingSenderId: "146349109253",
-  appId: "1:146349109253:web:e593afbf0584762519ac6c" // Changed from android: to web:
-};
+// const firebaseConfig = {
+//     apiKey: "YOUR_API_KEY",
+//     authDomain: "YOUR_AUTH_DOMAIN",
+//     projectId: "YOUR_PROJECT_ID",
+//     storageBucket: "YOUR_STORAGE_BUCKET",
+//     messagingSenderId: "YOUR_SENDER_ID",
+//     appId: "YOUR_APP_ID"
+// };
 
 // Initialize Firebase
 firebase.initializeApp(firebaseConfig);
@@ -17,6 +16,7 @@ const storage = firebase.storage();
 
 // DOM Elements
 const authScreen = document.getElementById('auth-screen');
+const userListScreen = document.getElementById('user-list-screen');
 const chatScreen = document.getElementById('chat-screen');
 const callScreen = document.getElementById('call-screen');
 const messagesContainer = document.getElementById('messages-container');
@@ -26,29 +26,20 @@ const loginBtn = document.getElementById('login-btn');
 const signupBtn = document.getElementById('signup-btn');
 const googleAuthBtn = document.getElementById('google-auth-btn');
 const logoutBtn = document.getElementById('logout-btn');
+const logoutBtnList = document.getElementById('logout-btn-list');
 const backBtn = document.getElementById('back-btn');
+const backToAuthBtn = document.getElementById('back-to-auth-btn');
 const voiceCallBtn = document.getElementById('voice-call-btn');
 const videoCallBtn = document.getElementById('video-call-btn');
 const attachBtn = document.getElementById('attach-btn');
-const attachmentsModal = document.getElementById('attachments-modal');
-const closeModal = document.querySelector('.close-modal');
-const sendImageBtn = document.getElementById('send-image-btn');
-const sendVideoBtn = document.getElementById('send-video-btn');
-const sendDocumentBtn = document.getElementById('send-document-btn');
-const remoteVideo = document.getElementById('remote-video');
-const localVideo = document.getElementById('local-video');
-const endCallBtn = document.getElementById('end-call-btn');
-const muteBtn = document.getElementById('mute-btn');
-const videoOffBtn = document.getElementById('video-off-btn');
-const switchCameraBtn = document.getElementById('switch-camera-btn');
-const callerName = document.getElementById('caller-name');
-const callStatus = document.getElementById('call-status');
-const callerAvatar = document.getElementById('caller-avatar');
-const currentUsername = document.getElementById('current-username');
-const currentUserAvatar = document.getElementById('current-user-avatar');
+const usersList = document.getElementById('users-list');
+const userSearch = document.getElementById('user-search');
+const currentUsernameList = document.getElementById('current-username-list');
+const currentUserAvatarList = document.getElementById('current-user-avatar-list');
 
 // Global Variables
 let currentUser = null;
+let selectedUser = null;
 let localStream = null;
 let peerConnection = null;
 let callDocRef = null;
@@ -65,7 +56,9 @@ function init() {
     signupBtn.addEventListener('click', signUpWithEmail);
     googleAuthBtn.addEventListener('click', loginWithGoogle);
     logoutBtn.addEventListener('click', logout);
+    logoutBtnList.addEventListener('click', logout);
     backBtn.addEventListener('click', goBack);
+    backToAuthBtn.addEventListener('click', goBackToAuth);
     sendBtn.addEventListener('click', sendMessage);
     messageInput.addEventListener('keypress', (e) => {
         if (e.key === 'Enter') sendMessage();
@@ -82,22 +75,37 @@ function init() {
     videoOffBtn.addEventListener('click', toggleVideo);
     switchCameraBtn.addEventListener('click', switchCamera);
     
+    // User search functionality
+    userSearch.addEventListener('input', searchUsers);
+    
     // Check auth state
     auth.onAuthStateChanged(user => {
         if (user) {
             // User is signed in
             currentUser = user;
             currentUsername.textContent = user.displayName || user.email.split('@')[0];
+            currentUsernameList.textContent = user.displayName || user.email.split('@')[0];
             currentUserAvatar.src = user.photoURL || 'https://via.placeholder.com/40';
+            currentUserAvatarList.src = user.photoURL || 'https://via.placeholder.com/40';
             
             authScreen.classList.add('hidden');
-            chatScreen.classList.remove('hidden');
+            userListScreen.classList.remove('hidden');
             
-            // Load messages
-            loadMessages();
+            // Load users
+            loadUsers();
+            
+            // Update user status
+            updateUserStatus(true);
+            
+            // Listen for status changes
+            window.addEventListener('beforeunload', () => {
+                updateUserStatus(false);
+            });
         } else {
             // User is signed out
             currentUser = null;
+            selectedUser = null;
+            userListScreen.classList.add('hidden');
             chatScreen.classList.add('hidden');
             authScreen.classList.remove('hidden');
         }
@@ -152,7 +160,10 @@ function loginWithGoogle() {
 }
 
 function logout() {
-    auth.signOut()
+    updateUserStatus(false)
+        .then(() => {
+            return auth.signOut();
+        })
         .then(() => {
             if (peerConnection) {
                 endCall();
@@ -163,9 +174,78 @@ function logout() {
         });
 }
 
+// User Status Functions
+function updateUserStatus(isOnline) {
+    if (!currentUser) return Promise.resolve();
+    
+    return db.collection('users').doc(currentUser.uid).set({
+        uid: currentUser.uid,
+        email: currentUser.email,
+        displayName: currentUser.displayName || currentUser.email.split('@')[0],
+        photoURL: currentUser.photoURL || 'https://via.placeholder.com/40',
+        status: isOnline ? 'online' : 'offline',
+        lastSeen: firebase.firestore.FieldValue.serverTimestamp()
+    }, { merge: true });
+}
+
+// User List Functions
+function loadUsers() {
+    db.collection('users')
+        .where('uid', '!=', currentUser.uid)
+        .onSnapshot(snapshot => {
+            usersList.innerHTML = '';
+            snapshot.forEach(doc => {
+                const user = doc.data();
+                displayUser(user);
+            });
+        });
+}
+
+function displayUser(user) {
+    const userItem = document.createElement('div');
+    userItem.classList.add('user-item');
+    userItem.dataset.uid = user.uid;
+    
+    userItem.innerHTML = `
+        <img src="${user.photoURL}" alt="${user.displayName}" class="user-avatar">
+        <div class="user-name">${user.displayName}</div>
+        <div class="user-status ${user.status === 'online' ? 'online' : ''}"></div>
+    `;
+    
+    userItem.addEventListener('click', () => {
+        selectedUser = user;
+        currentUsername.textContent = user.displayName;
+        userListScreen.classList.add('hidden');
+        chatScreen.classList.remove('hidden');
+        loadMessages();
+    });
+    
+    usersList.appendChild(userItem);
+}
+
+function searchUsers() {
+    const searchTerm = userSearch.value.toLowerCase();
+    const userItems = document.querySelectorAll('.user-item');
+    
+    userItems.forEach(item => {
+        const userName = item.querySelector('.user-name').textContent.toLowerCase();
+        if (userName.includes(searchTerm)) {
+            item.style.display = 'flex';
+        } else {
+            item.style.display = 'none';
+        }
+    });
+}
+
 // Chat Functions
 function loadMessages() {
-    db.collection('messages')
+    if (!selectedUser) return;
+    
+    // Create a combined ID for the chat
+    const chatId = [currentUser.uid, selectedUser.uid].sort().join('_');
+    
+    db.collection('chats').doc(chatId)
+        .collection('messages')
         .orderBy('timestamp')
         .onSnapshot(snapshot => {
             messagesContainer.innerHTML = '';
@@ -211,15 +291,21 @@ function scrollToBottom() {
 function sendMessage() {
     const text = messageInput.value.trim();
     if (!text && !attachment) return;
+    if (!selectedUser) return;
+    
+    // Create a combined ID for the chat
+    const chatId = [currentUser.uid, selectedUser.uid].sort().join('_');
     
     const message = {
         text: text,
         senderId: currentUser.uid,
         senderName: currentUser.displayName || currentUser.email.split('@')[0],
+        receiverId: selectedUser.uid,
         timestamp: firebase.firestore.FieldValue.serverTimestamp()
     };
     
-    db.collection('messages').add(message)
+    db.collection('chats').doc(chatId)
+        .collection('messages').add(message)
         .then(() => {
             messageInput.value = '';
         })
@@ -243,6 +329,7 @@ function sendAttachment(type) {
     input.onchange = e => {
         const file = e.target.files[0];
         if (!file) return;
+        if (!selectedUser) return;
         
         const storageRef = storage.ref(`attachments/${currentUser.uid}/${Date.now()}_${file.name}`);
         const uploadTask = storageRef.put(file);
@@ -254,9 +341,13 @@ function sendAttachment(type) {
             }, 
             () => {
                 uploadTask.snapshot.ref.getDownloadURL().then(downloadURL => {
+                    // Create a combined ID for the chat
+                    const chatId = [currentUser.uid, selectedUser.uid].sort().join('_');
+                    
                     const message = {
                         senderId: currentUser.uid,
                         senderName: currentUser.displayName || currentUser.email.split('@')[0],
+                        receiverId: selectedUser.uid,
                         timestamp: firebase.firestore.FieldValue.serverTimestamp()
                     };
                     
@@ -271,7 +362,9 @@ function sendAttachment(type) {
                         message.text = `Sent a file: ${file.name}`;
                     }
                     
-                    db.collection('messages').add(message);
+                    db.collection('chats').doc(chatId)
+                        .collection('messages').add(message);
+                    
                     attachmentsModal.classList.add('hidden');
                 });
             }
@@ -283,6 +376,11 @@ function sendAttachment(type) {
 
 // Call Functions
 async function initiateCall(type) {
+    if (!selectedUser) {
+        alert('Please select a user to call');
+        return;
+    }
+    
     try {
         // Create a call document in Firestore
         callDocRef = db.collection('calls').doc();
@@ -307,9 +405,9 @@ async function initiateCall(type) {
         });
         
         // Set up caller info
-        callerName.textContent = 'Calling...';
-        callStatus.textContent = 'Starting call...';
-        callerAvatar.src = currentUser.photoURL || 'https://via.placeholder.com/80';
+        callerName.textContent = selectedUser.displayName;
+        callStatus.textContent = 'Calling...';
+        callerAvatar.src = selectedUser.photoURL || 'https://via.placeholder.com/80';
         
         // Show call screen
         chatScreen.classList.add('hidden');
@@ -328,6 +426,9 @@ async function initiateCall(type) {
             callerId: currentUser.uid,
             callerName: currentUser.displayName || currentUser.email.split('@')[0],
             callerAvatar: currentUser.photoURL,
+            calleeId: selectedUser.uid,
+            calleeName: selectedUser.displayName,
+            calleeAvatar: selectedUser.photoURL,
             type: type,
             timestamp: firebase.firestore.FieldValue.serverTimestamp()
         };
@@ -482,88 +583,4 @@ async function endCall() {
     
     // Hide call screen
     callScreen.classList.add('hidden');
-    chatScreen.classList.remove('hidden');
-}
-
-// Helper Functions
-function goBack() {
-    if (callScreen.classList.contains('hidden')) {
-        // If not in a call, go back to auth screen (logout)
-        logout();
-    } else {
-        // If in a call, end the call
-        endCall();
-    }
-}
-
-// Listen for incoming calls
-db.collection('calls').onSnapshot(snapshot => {
-    snapshot.docChanges().forEach(async change => {
-        if (change.type === 'added' && change.doc.id !== callDocRef?.id) {
-            // This is an incoming call
-            const callData = change.doc.data();
-            
-            if (callData.callerId === currentUser.uid) return; // Ignore our own calls
-            
-            // Show call screen
-            callerName.textContent = callData.callerName;
-            callStatus.textContent = `Incoming ${callData.type} call`;
-            callerAvatar.src = callData.callerAvatar || 'https://via.placeholder.com/80';
-            
-            chatScreen.classList.add('hidden');
-            callScreen.classList.remove('hidden');
-            
-            // Create peer connection
-            createPeerConnection();
-            
-            // Set remote description
-            const offerDescription = new RTCSessionDescription(callData.offer);
-            await peerConnection.setRemoteDescription(offerDescription);
-            
-            // Create answer
-            const answerDescription = await peerConnection.createAnswer();
-            await peerConnection.setLocalDescription(answerDescription);
-            
-            // Get local media stream
-            localStream = await navigator.mediaDevices.getUserMedia({
-                audio: true,
-                video: callData.type === 'video'
-            });
-            
-            // Display local video
-            if (callData.type === 'video') {
-                localVideo.srcObject = localStream;
-            }
-            
-            // Add local stream to peer connection
-            localStream.getTracks().forEach(track => {
-                peerConnection.addTrack(track, localStream);
-            });
-            
-            // Save answer to Firestore
-            const answer = {
-                type: answerDescription.type,
-                sdp: answerDescription.sdp
-            };
-            
-            await change.doc.ref.update({ answer });
-            
-            // Listen for ICE candidates from caller
-            change.doc.ref.collection('callerCandidates').onSnapshot(snapshot => {
-                snapshot.docChanges().forEach(change => {
-                    if (change.type === 'added') {
-                        const candidate = new RTCIceCandidate(change.doc.data());
-                        peerConnection.addIceCandidate(candidate);
-                    }
-                });
-            });
-            
-            // Add our ICE candidates
-            peerConnection.onicecandidate = event => {
-                if (event.candidate) {
-                    change.doc.ref.collection('calleeCandidates').add(event.candidate.toJSON());
-                }
-            };
-        }
-    });
-});
+      
