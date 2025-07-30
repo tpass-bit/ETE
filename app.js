@@ -98,7 +98,126 @@ function init() {
             // Update user status
             updateUserStatus(true);
             
-            // Listen for status changes
+// Authentication Functions with improved error handling
+function loginWithEmail() {
+    const email = document.getElementById('email').value;
+    const password = document.getElementById('password').value;
+    
+    if (!email || !password) {
+        showAlert('Please enter both email and password');
+        return;
+    }
+    
+    showLoading(true);
+    
+    auth.signInWithEmailAndPassword(email, password)
+        .then(() => {
+            showLoading(false);
+        })
+        .catch(error => {
+            showLoading(false);
+            handleAuthError(error);
+        });
+}
+
+function signUpWithEmail() {
+    const email = document.getElementById('email').value;
+    const password = document.getElementById('password').value;
+    
+    if (!email || !password) {
+        showAlert('Please enter both email and password');
+        return;
+    }
+    
+    if (password.length < 6) {
+        showAlert('Password must be at least 6 characters');
+        return;
+    }
+    
+    showLoading(true);
+    
+    auth.createUserWithEmailAndPassword(email, password)
+        .then((userCredential) => {
+            // Update user profile
+            return userCredential.user.updateProfile({
+                displayName: email.split('@')[0],
+                photoURL: `https://ui-avatars.com/api/?name=${encodeURIComponent(email.split('@')[0])}&background=random`
+            });
+        })
+        .then(() => {
+            showLoading(false);
+        })
+        .catch(error => {
+            showLoading(false);
+            handleAuthError(error);
+        });
+}
+
+function loginWithGoogle() {
+    showLoading(true);
+    
+    const provider = new firebase.auth.GoogleAuthProvider();
+    auth.signInWithPopup(provider)
+        .then(() => {
+            showLoading(false);
+        })
+        .catch(error => {
+            showLoading(false);
+            handleAuthError(error);
+        });
+}
+
+// Helper functions for better UX
+function showAlert(message) {
+    // You can replace this with a nicer alert system
+    alert(message);
+}
+
+function showLoading(show) {
+    const buttons = [loginBtn, signupBtn, googleAuthBtn];
+    buttons.forEach(btn => {
+        btn.disabled = show;
+        btn.innerHTML = show ? '<i class="fas fa-spinner fa-spin"></i>' : btn.dataset.originalHtml;
+    });
+}
+
+function handleAuthError(error) {
+    let errorMessage = 'Authentication failed. Please try again.';
+    
+    switch (error.code) {
+        case 'auth/invalid-email':
+            errorMessage = 'Please enter a valid email address.';
+            break;
+        case 'auth/user-disabled':
+            errorMessage = 'This account has been disabled.';
+            break;
+        case 'auth/user-not-found':
+        case 'auth/wrong-password':
+            errorMessage = 'Invalid email or password.';
+            break;
+        case 'auth/email-already-in-use':
+            errorMessage = 'This email is already registered.';
+            break;
+        case 'auth/operation-not-allowed':
+            errorMessage = 'This operation is not allowed.';
+            break;
+        case 'auth/weak-password':
+            errorMessage = 'Password should be at least 6 characters.';
+            break;
+        case 'auth/popup-closed-by-user':
+            // User closed the popup, no need to show error
+            return;
+    }
+    
+    showAlert(errorMessage);
+}
+
+// Initialize buttons' original HTML content
+document.addEventListener('DOMContentLoaded', () => {
+    [loginBtn, signupBtn, googleAuthBtn].forEach(btn => {
+        btn.dataset.originalHtml = btn.innerHTML;
+    });
+});            // Listen for status changes
             window.addEventListener('beforeunload', () => {
                 updateUserStatus(false);
             });
@@ -123,57 +242,7 @@ function loginWithEmail() {
         return;
     }
     
-    auth.signInWithEmailAndPassword(email, password)
-        .catch(error => {
-            alert(error.message);
-        });
-}
 
-function signUpWithEmail() {
-    const email = document.getElementById('email').value;
-    const password = document.getElementById('password').value;
-    
-    if (!email || !password) {
-        alert('Please enter both email and password');
-        return;
-    }
-    
-    auth.createUserWithEmailAndPassword(email, password)
-        .then(() => {
-            // Update user profile
-            const user = auth.currentUser;
-            return user.updateProfile({
-                displayName: email.split('@')[0],
-                photoURL: `https://ui-avatars.com/api/?name=${email.split('@')[0]}&background=random`
-            });
-        })
-        .catch(error => {
-            alert(error.message);
-        });
-}
-
-function loginWithGoogle() {
-    const provider = new firebase.auth.GoogleAuthProvider();
-    auth.signInWithPopup(provider)
-        .catch(error => {
-            alert(error.message);
-        });
-}
-
-function logout() {
-    updateUserStatus(false)
-        .then(() => {
-            return auth.signOut();
-        })
-        .then(() => {
-            if (peerConnection) {
-                endCall();
-            }
-        })
-        .catch(error => {
-            alert(error.message);
-        });
-}
 
 // User Status Functions
 function updateUserStatus(isOnline) {
