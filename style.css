@@ -462,3 +462,67 @@ body {
 ::-webkit-scrollbar-thumb:hover {
     background: #5649d1;
 }
+
+/* User List Screen */
+.user-list-screen .chat-header {
+    position: sticky;
+    top: 0;
+}
+
+.search-container {
+    padding: 0.8rem 1rem;
+    background-color: var(--white);
+    border-bottom: 1px solid var(--gray);
+}
+
+#user-search {
+    width: 100%;
+    padding: 0.8rem 1rem;
+    border: 1px solid var(--gray);
+    border-radius: 25px;
+    font-size: 0.9rem;
+    outline: none;
+}
+
+.users-container {
+    flex: 1;
+    overflow-y: auto;
+    background-color: var(--white);
+}
+
+.user-item {
+    display: flex;
+    align-items: center;
+    padding: 0.8rem 1rem;
+    border-bottom: 1px solid var(--gray);
+    cursor: pointer;
+    transition: background-color 0.2s;
+}
+
+.user-item:hover {
+    background-color: var(--light-color);
+}
+
+.user-avatar {
+    width: 40px;
+    height: 40px;
+    border-radius: 50%;
+    object-fit: cover;
+    margin-right: 0.8rem;
+}
+
+.user-name {
+    font-weight: 500;
+    flex: 1;
+}
+
+.user-status {
+    width: 10px;
+    height: 10px;
+    border-radius: 50%;
+    background-color: var(--dark-gray);
+}
+
+.user-status.online {
+    background-color: var(--success-color);
+}
