@@ -27,6 +27,32 @@
         </div>
     </div>
 
+    <!-- User List Screen -->
+<div id="user-list-screen" class="screen hidden">
+    <header class="chat-header">
+        <div class="header-left">
+            <button id="back-to-auth-btn" class="icon-btn"><i class="fas fa-arrow-left"></i></button>
+            <div class="user-info">
+                <img id="current-user-avatar-list" src="https://via.placeholder.com/40" alt="User">
+                <span id="current-username-list">User</span>
+            </div>
+        </div>
+        <div class="header-right">
+            <button id="logout-btn-list" class="icon-btn"><i class="fas fa-sign-out-alt"></i></button>
+        </div>
+    </header>
+
+    <div class="search-container">
+        <input type="text" id="user-search" placeholder="Search users...">
+    </div>
+
+    <div class="users-container">
+        <div id="users-list">
+            <!-- Users will be loaded here -->
+        </div>
+    </div>
+</div>
+    
     <!-- Main Chat Screen -->
     <div id="chat-screen" class="screen hidden">
         <!-- Header -->
